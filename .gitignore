@@ -1,0 +1,7 @@
+.env
+*.log
+.DS_Store
+node_modules/
+# apps/ holds your source code: never commit it here
+apps/*
+!apps/README.md

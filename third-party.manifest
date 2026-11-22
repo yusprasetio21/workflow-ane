@@ -1,0 +1,31 @@
+# Third-party skills installed by scripts/install-third-party.sh
+# Format:  <github owner/repo>  <skill folder name>
+# Lines starting with # are disabled. The script finds the folder by name and
+# requires exactly one folder with that name containing SKILL.md.
+# Pinned commits are stored in third-party.lock. Use --update on purpose only.
+# Keep total active skills small; measure tokens after each addition.
+
+# --- Process (Matt Pocock; MIT per the repo page) — CORE ---
+mattpocock/skills grilling
+mattpocock/skills grill-with-docs
+mattpocock/skills domain-modeling
+mattpocock/skills to-spec
+mattpocock/skills to-tickets
+mattpocock/skills tdd
+mattpocock/skills setup-matt-pocock-skills
+
+# --- Process (optional — enable later if needed) ---
+# mattpocock/skills diagnosing-bugs
+# mattpocock/skills prototype
+# mattpocock/skills handoff
+# mattpocock/skills writing-for-agents
+
+# --- Style (OPTIONAL — measure first without them) ---
+# Verify each repo's license and read its SKILL.md before enabling.
+# caveman: short chat replies only. Does NOT apply to specs, ADRs, tests, map files.
+# DietrichGebert/ponytail ponytail
+# JuliusBrussee/caveman caveman
+
+# --- NOT included (overlap with mattpocock, or framework-heavy) ---
+# obra/superpowers (bootstrap, subagents, worktrees — token heavy)
+# framework multi-agent, repomix, memory extensions, generic design skills

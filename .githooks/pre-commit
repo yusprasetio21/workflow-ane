@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Blocks secrets, and warns (does not block) when the map is behind the code.
+if git diff --cached --name-only | grep -Eq '(^|/)\.env$'; then
+  echo "Blocked: .env is staged. Remove it from the commit."; exit 1
+fi
+if git diff --cached -U0 | grep -Eq '^\+.*(API_KEY|SECRET|TOKEN|PASSWORD)[A-Za-z_]*[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9_./+-]{16,}'; then
+  echo "Blocked: staged lines look like a secret. Review with: git diff --cached"; exit 1
+fi
+[ -x scripts/check-map-fresh.sh ] && scripts/check-map-fresh.sh --quiet
+exit 0
