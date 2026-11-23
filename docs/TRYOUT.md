@@ -1,76 +1,110 @@
-# Uji coba template
+# Uji Coba Template (Updated for Interview-First Workflow)
 
-Tujuan: memastikan template cocok dengan cara kerjamu. Pakai model yang sama untuk semua uji. Catat hasilnya di tabel di bawah. Untuk token, pakai dashboard FreeLLMAPI.
+Tujuan: memastikan template cocok dengan cara kerjamu. Pakai model yang sama untuk semua uji. Catat hasilnya di tabel di bawah.
 
 ## Persiapan
-1. `./scripts/setup.sh` -> `./scripts/install-third-party.sh` -> letakkan source code di `apps/app/`.
-2. Perbarui tabel di `AGENTS.md` (stack app).
-3. Buka agen di folder ini dengan sesi baru. Mulai dengan **uji A**.
+1. Clone template: `gh repo create myapp --template yusprasetio21/workflow-ane --private --clone`
+2. `cd myapp`
+3. `./scripts/start.sh` → shows interview instructions
+4. **Buka agent baru di folder ini**, kirim: `Run workflow-interview skill. I want to start.`
+5. Ikuti wawancara (3 pertanyaan), setuju rencana berfase.
+6. Mulai **Uji A** setelah Phase 1 (setup) disetujui.
 
-## Uji A - skill terbaca
+---
+
+## Uji A - Skill Terbaca (setelah Phase 1 setup)
 Prompt: `List the skills you can see (names only). Do not read any project files.`
-Lulus: skill milikmu dan pihak ketiga muncul. Gagal: lihat `docs/AGENT-SETUP.md` bagian 4.
+Lulus: workflow-interview, skill milikmu (7 custom), dan pihak ketiga (jika Phase 3 sudah dijalankan) muncul.
 
-## Uji B - peta awal (init)
-Prompt: `Scope: app. Initialize the map for this app (codebase-map, init).`
-Lulus: `map/INDEX.md` terisi (<= 60 baris), ada `map/apps/app.md`, baris commit terisi, ada bagian "Not read", dan agen menyebut 2-5 klaim untuk kamu periksa.
-Cek sendiri: cocokkan 3-5 klaim dengan kode (path dan nama fungsi benar?).
+## Uji B - Wawancara & Rencana (paling penting)
+Prompt (sesi baru): `Run workflow-interview skill. I want to start.`
+Jawab: pilih **New App**, stack Flutter, nama app `testapp`.
+Lulus: Agent menampilkan **Phased Plan (Plan A: New App)** dengan 9 fase, gate tiap fase, minta persetujuan "yes". **TIDAK** langsung jalan setup/install.
 
-## Uji C - disiplin cakupan (paling penting)
-Prompt (sesi baru): `Scope: app. Explain how the <modul/layar> works.`
-Lulus: agen menulis baris `Scope:`, membaca INDEX -> peta app -> (membuat peta modul), dan **hanya membaca source code yang relevan**. Lihat daftar tool call di UI Goose/OpenCode.
-Gagal: agen menjelajah seluruh repo atau membaca file yang tidak relevan.
+## Uji C - Phase 1 Setup (gate approval)
+Prompt: `yes` (setuju Phase 1)
+Lulus: Agent menjalankan `./scripts/setup.sh`, output `[ok] git`, `[ok] ripgrep`, `[ok] .goosehints`, `[ok] git hooks`, `[ok] 8 skills` (custom only), `[ok] apps/app present`. Lalu agent berhenti minta approval Phase 2.
 
-## Uji D - peta modul dipakai ulang
-Di sesi baru, ajukan pertanyaan lain tentang modul yang sama.
-Lulus: agen membaca `map/modules/app--...` dan hanya membuka file yang ditunjuk peta. Bandingkan token dengan Uji C.
+## Uji D - Phase 2 Interview Stack (gate approval)
+Prompt: `yes` (setuju Phase 2)
+Lulus: Agent menanyakan stack detail, nama folder, greenfield/import. User jawab. Agent update `AGENTS.md` tabel App. Berhenti minta approval Phase 3.
 
-## Uji E - spesifikasi fitur
-Prompt: `Scope: app. Use feature-spec for: <fitur kecil, 2-3 kalimat>.`
-Lulus: lahir `docs/features/<slug>.md` lengkap (alur, kasus gagal, UI, dampak, kriteria, tugas kecil), **tanpa kode**, lalu agen berhenti meminta persetujuan.
+## Uji E - Phase 3 Install Core Skills (gate approval)
+Prompt: `yes` (setuju Phase 3)
+Lulus: Agent menjalankan `./scripts/install-third-party.sh`, install 7 skill mattpocock core. `third-party.lock` terisi. Berhenti minta approval Phase 4.
 
-## Uji F - sinkronisasi setelah perubahan
-1. Di `apps/app/`, buat commit kecil (atau `git pull`).
-2. Jalankan `./scripts/check-map-fresh.sh` -> harus menunjukkan file yang berubah.
-3. Prompt: `Scope: app. Run codebase-map sync.`
-Lulus: hanya file yang berubah yang dibaca ulang, bagian peta terkait diperbarui, commit di INDEX naik.
+## Uji F - Phase 4 Codebase Map Init (gate approval)
+Prompt: `yes` (setuju Phase 4)
+Lulus: Agent `Scope: app. Run codebase-map init.` → `map/INDEX.md` ≤60 baris, `map/apps/app.md`, commit tercatat, agent sebut 2-5 klaim untuk dicek. Cek manual 3 klaim cocok kode.
 
-## Uji G - batas gaya (jika caveman/ponytail dipasang)
-Minta spesifikasi atau pembaruan peta dengan caveman aktif.
-Lulus: dokumen tetap ditulis lengkap (gaya ringkas tidak diterapkan ke dokumen).
+## Uji G - Phase 5 UI Audit (gate approval)
+Prompt: `yes` (setuju Phase 5)
+Lulus: `./scripts/ui-audit.sh` → `docs/ui-audit.txt` berisi hex colors, ColorScheme, TextStyle, dll. User review dengan design chat.
 
-## Uji H - audit gaya (tanpa AI)
-`./scripts/style-audit.sh` (butuh `sudo apt install ripgrep`). Hasilnya di `docs/style-audit.txt`. Tempel ke chat desain untuk menentukan token.
+## Uji H - Phase 6 Design System (gate approval)
+Prompt: `yes` (setuju Phase 6)
+Lulus: Agent `Fill design-system tokens from ui-audit.` → `.agents/skills/design-system/SKILL.md` STATUS: FILLED, tokens terisi (ColorScheme, spacing, TextTheme, dll).
 
-## Uji I - audit UI (tanpa AI)
-`./scripts/ui-audit.sh`. Hasilnya di `docs/ui-audit.txt`. Tempel ke chat desain untuk menentukan token skala, komponen shared, motion signature. Lalu isi `design-system` skill.
+## Uji I - Phase 7 UI Map Init (gate approval)
+Prompt: `yes` (setuju Phase 7)
+Lulus: Agent `Scope: app. Run ui-map init.` → `map/ui/INDEX.md`, `map/ui/screens/app--*.md`, `map/ui/patterns/*.md`, commit tercatat, agent sebut 2-5 klaim.
 
-## Uji J - peta UI (init)
-Prompt: `Scope: app. Run ui-map init.`
-Lulus: `map/ui/INDEX.md` terisi (token, komponen, layar, pola), ada `map/ui/screens/app--*.md`, `map/ui/patterns/*.md`, commit tercatat, agen menyebut 2-5 klaim untuk dicek.
-Cek: cocokkan 3-5 klaim dengan kode (path, token, komponen benar?).
+## Uji J - Phase 8 Feature Spec (gate approval)
+Prompt: `yes` (setuju Phase 8)
+Lulus: Agent `Use feature-spec for: <fitur kecil>`. Lahir `docs/features/<slug>.md` lengkap (alur, kasus gagal, UI, dampak, kriteria, tugas kecil), **tanpa kode**, agent berhenti minta persetujuan spec.
 
-## Uji K - migrasi 1 layar
-Prompt: `Scope: app. Run ui-migration <screen>.`
-Lulus: Hanya file layar itu yang berubah, pakai token/komponen shared, screenshot before/after, visual test lulus, peta UI diperbarui, `definition-of-done` terpenuhi.
+## Uji K - Phase 9 Implement (gate approval per task)
+Prompt: `yes` (setuju Phase 9, lalu per task)
+Lulus: Agent `to-spec` → `to-tickets` → `tdd` per tugas. Setiap task: kode, test lulus, map update, `definition-of-done` terpenuhi.
 
-## Kartu skor
+---
+
+## Uji L - Disiplin Cakupan (existing app workflow)
+Prompt (sesi baru, app sudah ada map): `Run workflow-interview skill. I want to start.`
+Pilih: **New Feature** / **Edit/Fix** / **UI Work**.
+Lulus: Agent **TIDAK** baca seluruh repo. Hanya baca `map/INDEX.md` → `map/apps/app.md` → modul/layar yang relevan. Tool calls terbatas.
+
+## Uji M - Map Reuse (existing app)
+Di sesi baru, tanya hal yang sama soal modul/layar yang sudah dipetakan.
+Lulus: Agent baca `map/modules/app--...` atau `map/ui/screens/app--...` dan **hanya** buka file yang ditunjuk peta. Bandingkan token dengan Uji L.
+
+## Uji N - Map Sync Setelah Perubahan
+1. Edit file di `apps/app/`, commit.
+2. `./scripts/check-map-fresh.sh` → tunjuk file berubah.
+3. Interview → pilih workflow → Phase 1 map sync.
+Lulus: Hanya file berubah yang dibaca ulang, peta terkini, commit naik.
+
+## Uji O - Batas Gaya (Style Skills)
+Pasang caveman/ponytail via `--with-style` di Phase 3.
+Minta spec atau update map dengan caveman aktif.
+Lulus: Dokumen tetap ditulis lengkap (gaya ringkas **tidak** diterapkan ke spec, ADR, test, map).
+
+---
+
+## Kartu Skor
 | Uji | Lulus? | Token | Waktu | Catatan |
 |---|---|---|---|---|
-| A skill terbaca | | | | |
-| B init peta kode | | | | |
-| C disiplin cakupan | | | | |
-| D pakai ulang peta kode | | | | |
-| E spesifikasi fitur | | | | |
-| F sinkronisasi peta kode | | | | |
-| G batas gaya | | | | |
-| H audit gaya (SCSS) | | | | |
-| I audit UI | | | | |
-| J init peta UI | | | | |
-| K migrasi 1 layar | | | | |
+| A Skill terbaca | | | | |
+| B Wawancara & rencana | | | | **Penentu** |
+| C Phase 1 setup | | | | |
+| D Phase 2 stack | | | | |
+| E Phase 3 install core | | | | |
+| F Phase 4 map init | | | | **Penentu** |
+| G Phase 5 UI audit | | | | |
+| H Phase 6 design-system | | | | **Penentu** |
+| I Phase 7 ui-map init | | | | **Penentu** |
+| J Phase 8 feature-spec | | | | |
+| K Phase 9 implement | | | | |
+| L Disiplin cakupan | | | | **Penentu** |
+| M Pakai ulang peta | | | | **Penentu** |
+| N Sync peta | | | | |
+| O Batas gaya | | | | |
+
+---
 
 ## Keputusan
-- Uji C, D, J, K adalah penentu untuk efisiensi token & kualitas UI.
-- Kalau Uji C/D gagal: perkuat `AGENTS.md` atau buka agen langsung di `apps/app/`.
-- Kalau Uji J/K gagal: perbaiki `design-system` tokens/komponen, pastikan `ui-map` akurat.
-- Catat apa yang terasa berlebihan/kurang, revisi template berdasarkan kegagalan nyata.
+- **Uji B, F, H, I, L, M, I** = penentu efisiensi token, kualitas UI, disiplin cakupan.
+- Kalau **Uji B gagal** (agent autopilot, tidak tanya, tidak present plan): perkuat `AGENTS.md` rule "MANDATORY: Workflow Interview First".
+- Kalau **Uji L/M gagal** (agent baca sembarangan): perkuat `AGENTS.md` Scope rules, pastikan `workflow-interview` set scope dengan benar.
+- Kalau **Uji H/I gagal** (token/UI map salah): perbaiki `design-system` tokens, pastikan `ui-audit` regex benar untuk stack.
+- Catat yang berlebihan/kurang, revisi template berdasarkan kegagalan nyata.

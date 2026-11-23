@@ -1,34 +1,43 @@
 #!/usr/bin/env bash
-# Install the skills listed in third-party.manifest into .agents/skills/
-# and pin the repos' commits in third-party.lock. Needs git and internet.
-# Usage: scripts/install-third-party.sh [--update]
+# Phase 3 (New App) or Phase 1 (Existing App): Install third-party skills.
+# Run ONLY after workflow-interview presents plan and user approves this phase.
+# By default installs mattpocock core process (7 skills).
+# Use --with-style to also install caveman + ponytail.
+
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+WITH_STYLE=0
+for arg in "$@"; do
+  case "$arg" in
+    --with-style) WITH_STYLE=1 ;;
+    *) echo "Unknown arg: $arg"; exit 1 ;;
+  esac
+done
+
+ok(){ echo "[ok]   $*"; }
+warn(){ echo "[warn] $*"; }
+err(){ echo "[err]  $*" >&2; }
+
+command -v git >/dev/null || { err "git required"; exit 1; }
+command -v rg >/dev/null || { err "ripgrep required"; exit 1; }
+
 MANIFEST="third-party.manifest"
 LOCK="third-party.lock"
-DEST=".agents/skills"
-GIT_BASE="${GIT_BASE:-https://github.com}"
-OWN=" codebase-map feature-spec ui-migration definition-of-done design-system "
-UPDATE=0
-[ "${1:-}" = "--update" ] && UPDATE=1
-
-command -v git >/dev/null || { echo "git is required"; exit 1; }
-[ -f "$MANIFEST" ] || { echo "Missing $MANIFEST"; exit 1; }
-
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
-mkdir -p "$DEST" LICENSES
-NEWLOCK="$TMP/lock.new"
-: > "$NEWLOCK"
-CLONE=""
+NEWLOCK="$(mktemp)"
+GIT_BASE="https://github.com"
+UPDATE=0  # 0 = use pinned commits from lock
+
+cleanup() { rm -rf "$TMP" "$NEWLOCK"; }
+trap cleanup EXIT
 
 locked_commit() {
-  [ -f "$LOCK" ] && awk -v r="$1" '$1==r {print $2; exit}' "$LOCK" || true
+  grep "^$1 " "$LOCK" 2>/dev/null | awk '{print $2}' || true
 }
 
 fetch_repo() {
-  local repo="$1" slug dir ref pinned f
+  local repo="$1" slug dir ref pinned
   slug="${repo//\//__}"
   dir="$TMP/$slug"
   if [ ! -d "$dir" ]; then
@@ -42,32 +51,49 @@ fetch_repo() {
     git -C "$dir" fetch -q --depth 1 origin "$ref"
     git -C "$dir" checkout -q FETCH_HEAD
     printf '%s %s %s\n' "$repo" "$(git -C "$dir" rev-parse HEAD)" "$(date -u +%F)" >> "$NEWLOCK"
-    shopt -s nullglob
-    for f in "$dir"/LICENSE*; do cp "$f" "LICENSES/${slug}-$(basename "$f")"; done
-    shopt -u nullglob
   fi
   CLONE="$dir"
 }
 
-while read -r repo skill _; do
-  [ -z "${repo:-}" ] && continue
-  case "$repo" in \#*) continue ;; esac
-  [ -z "${skill:-}" ] && { echo "Bad manifest line for $repo"; exit 1; }
-  case "$OWN" in *" $skill "*) echo "ERROR: '$skill' is one of your own skills; rename or remove it from the manifest"; exit 1 ;; esac
+install_skill() {
+  local repo="$1" skill_name="$2"
   fetch_repo "$repo"
-  mapfile -t found < <(find "$CLONE" -type d -name "$skill" -not -path '*/.git/*' -exec test -f '{}/SKILL.md' \; -print)
-  if [ "${#found[@]}" -ne 1 ]; then
-    echo "ERROR: $repo / $skill: expected exactly 1 folder with SKILL.md, found ${#found[@]}"
-    [ "${#found[@]}" -gt 0 ] && printf '  %s\n' "${found[@]}"
-    exit 1
+  local skill_dir="$CLONE/$skill_name"
+  if [ ! -d "$skill_dir" ] || [ ! -f "$skill_dir/SKILL.md" ]; then
+    err "Skill folder '$skill_name' not found or missing SKILL.md in $repo"
+    return 1
   fi
-  rm -rf "${DEST:?}/$skill"
-  cp -a "${found[0]}" "$DEST/$skill"
-  echo "installed: $skill  <-  $repo"
+  mkdir -p ".agents/skills/$skill_name"
+  cp -r "$skill_dir/"* ".agents/skills/$skill_name/"
+  # Copy license if exists
+  for lic in "$CLONE/LICENSE" "$CLONE/LICENSE.md" "$CLONE/LICENSE.txt"; do
+    [ -f "$lic" ] && cp "$lic" "LICENSES/${repo//\//__}-LICENSE" && break
+  done
+  ok "installed: $skill_name  <-  $repo"
+}
+
+# Parse manifest
+while IFS= read -r line; do
+  line="${line%%#*}"  # strip comments
+  line="$(echo "$line" | xargs)"  # trim
+  [ -z "$line" ] && continue
+  set -- $line
+  repo="$1"
+  skill="$2"
+  case "$repo" in
+    DietrichGebert/ponytail|JuliusBrussee/caveman)
+      [ "$WITH_STYLE" -eq 1 ] || { warn "skipping style skill $skill (use --with-style)"; continue; }
+      ;;
+  esac
+  install_skill "$repo" "$skill"
 done < "$MANIFEST"
 
-sort -u "$NEWLOCK" > "$LOCK"
+mv "$NEWLOCK" "$LOCK"
+ok "Pinned commits updated in $LOCK"
+
+n="$(find .agents/skills -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+ok "$n total skills in .agents/skills"
+
 echo
-echo "Pinned in $LOCK:"; cat "$LOCK"
-echo
-echo "NEXT: read each .agents/skills/<name>/SKILL.md before using it."
+echo "✅ Third-party skills installed. Next phase per your approved plan."
+echo "👉 Tell your agent: \"Phase 3 approved. Proceed to Phase 4.\""

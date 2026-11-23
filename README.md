@@ -1,47 +1,96 @@
-# Workflow Template v0.1.0
+# workflow-ane
 
-Template cara kerja untuk bekerja dengan agen coding (Goose / OpenCode) pada **satu source code** (default), dengan **satu peta** (`map/`) sebagai memori bersama, supaya agen tidak membaca ulang kode yang sama di setiap sesi. Multi-source hanya kalau user minta eksplisit.
+Personal AI-assisted development template (Indonesian branding: "ane" = me/mine).
+Single code map + single UI map. Interview-first, phased, transparent. No autopilot.
 
-## Ide utama
-1. **Satu folder induk** (repo privat milikmu) berisi `apps/app` (source code utama) dan **satu peta** `map/`. Bisa tambah source lain nanti kalau user minta.
-2. **Cakupan ditentukan kamu** di awal sesi ("app, tugas Y"). Kalau tidak jelas, agen bertanya, bukan membaca semuanya.
-3. **Baca bertahap**: `map/INDEX.md` -> `map/apps/app.md` -> `map/modules/app--<module>.md` -> baru kode. Berhenti begitu cukup untuk bertindak.
-4. **Setiap bacaan meninggalkan catatan**: peta dibuat bertahap (lazy), dan diperbarui hanya di bagian yang tersentuh (`sync`, berdasarkan commit).
-5. **Gaya tidak boleh memangkas dokumen**: caveman/ponytail hanya untuk balasan dan kode, bukan spesifikasi, tes, atau peta.
+## Quick Start
 
-## Isi
-```
-AGENTS.md              aturan ringkas (router, cakupan, prioritas)
-GLOSSARY.md            bahasa bersama
-map/                   SATU peta kode: INDEX, apps/app.md, modules/app--*.md, CROSS-APP.md
-map/ui/                SATU peta UI: INDEX, screens/app--*.md, patterns/*.md
-docs/                  features/ (spesifikasi), adr/ (keputusan), TRYOUT.md, AGENT-SETUP.md
-.agents/skills/        skill milikmu:
-  - codebase-map, feature-spec, ui-migration, definition-of-done, design-system
-  - ui-audit, ui-map  (UI workflow: audit → tokens → ui-map → migrate)
-  - pihak ketiga setelah dipasang (mattpocock core process)
-third-party.manifest   daftar skill pihak ketiga (aktif/nonaktif)
-scripts/               setup, install-third-party, check-map-fresh, style-audit, ui-audit
-.githooks/pre-commit   blokir secret, peringatkan peta yang basi
-apps/app/              source code utama (diabaikan git)
+```bash
+# 1. Create new project from template
+gh repo create myapp --template yusprasetio21/workflow-ane --private --clone
+cd myapp
+
+# 2. Read entry point (shows interview instructions)
+./scripts/start.sh
+
+# 3. Open NEW agent session here, send:
+#    "Run workflow-interview skill. I want to start."
+
+# 4. Agent asks 3 questions → presents phased plan → you approve each gate
 ```
 
-## Mulai cepat
-1. Jadikan repo privat (atau unzip ke folder kerja lalu `git init`).
-2. `./scripts/setup.sh`  (cek lingkungan, buat `.env`, aktifkan hook)
-3. `./scripts/install-third-party.sh`  (butuh internet; memasang dan **mem-pin** skill pihak ketiga. Baca tiap `SKILL.md` setelahnya)
-4. Letakkan source code di `apps/app/` (lihat `apps/README.md`) dan sesuaikan tabel di `AGENTS.md`.
-5. Isi key di `.env`, muat (`set -a; source .env; set +a`), lalu buka Goose/OpenCode **di folder ini**.
-6. Ikuti **`docs/TRYOUT.md`** untuk menguji apakah template cocok dengan cara kerjamu.
+## Workflow Types
 
-## Yang belum terverifikasi (uji dulu)
-- Apakah Goose dan OpenCode versimu membaca skill di `.agents/skills/` tingkat proyek.
-- Apakah `.goosehints` (symlink ke AGENTS.md) terbaca oleh Goose.
-- Format `opencode.json` provider (pola umum; cocokkan dengan dokumen OpenCode).
-- Jalur skill di repo pihak ketiga: skrip mencari folder berdasarkan nama dan berhenti dengan pesan jelas kalau ketemu nol atau lebih dari satu.
-- `style-audit.sh` belum dijalankan di lingkungan pembuatnya (butuh `ripgrep`).
+| Type | Use When | Phases |
+|---|---|---|
+| **New App** | Greenfield project | 9 phases: setup → stack → install core → codebase map → UI audit → design system → UI map → feature spec → implement |
+| **New Feature** | Add feature to existing app | 5 phases: map sync → grill requirements → feature spec → break down → implement |
+| **Edit/Fix** | Bug fix, refactor, update | 4 phases: map sync → explore/grill → plan fix → implement fix |
+| **UI Work** | Design system, audit, migrate | 4 phases: UI audit → design system → UI map → migrate per screen |
 
-## Catatan
-- Template ini hanya berisi profil **Vue + SCSS** (lewat skill `design-system`). Profil Rust dan lainnya ditambahkan nanti.
-- Isi `design-system` masih kerangka (STATUS: SKELETON). Isi setelah menjalankan `scripts/style-audit.sh`.
-- Privasi: kode yang dibaca agen terkirim ke penyedia model. Pastikan kamu berhak mengirim kode aplikasi.
+## Core Principles
+
+1. **Interview First** — Every session starts with `workflow-interview` skill. No exceptions.
+2. **Phased with Gates** — Plan presented upfront. You approve each phase before execution.
+3. **Single Maps** — One `map/INDEX.md` for code, one `map/ui/INDEX.md` for UI. Lazy-loaded, scope-enforced.
+4. **Token Efficient** — Agents read maps (50 lines) not source (5000 lines). Maps cite file:function.
+5. **Core Process Only** — Matt Pocock 7 skills (grilling, grill-with-docs, domain-modeling, to-spec, to-tickets, tdd, setup). Style skills (caveman, ponytail) **opt-in only**.
+6. **Agent Agnostic** — Works with Goose, OpenCode, Claude Code. Provider config in `opencode.json` / `.env`.
+
+## Structure
+
+```
+.
+├── AGENTS.md                 # Rules (read every session)
+├── scripts/
+│   ├── start.sh              # Entry point — run first
+│   ├── setup.sh              # Phase 1: basic workspace
+│   ├── install-third-party.sh # Phase 3: mattpocock core (--with-style for caveman/ponytail)
+│   ├── phase-*.sh            # Phase runners for each workflow
+│   ├── ui-audit.sh           # RG-based UI token extraction
+│   ├── style-audit.sh        # RG-based style token extraction
+│   └── check-map-fresh.sh    # Map freshness check
+├── .agents/skills/           # Custom skills (loaded by agent)
+│   ├── workflow-interview/   # MANDATORY first skill
+│   ├── codebase-map/         # Code map: init/deepen/sync
+│   ├── feature-spec/         # Spec with impact analysis
+│   ├── ui-migration/         # Migrate one screen to design system
+│   ├── definition-of-done/   # Completion checklist
+│   ├── design-system/        # Tokens & shared components
+│   ├── ui-audit/             # RG-based audit skill
+│   ├── ui-map/               # UI map: init/deepen/sync
+│   └── (third-party/)        # Installed on demand
+├── map/
+│   ├── INDEX.md              # System purpose, apps, verified commits
+│   ├── apps/app.md           # App: modules, data flow, risks
+│   ├── modules/app--*.md     # Per-module detail
+│   ├── ui/
+│   │   ├── INDEX.md          # Tokens, components, screens, patterns
+│   │   ├── screens/app--*.md # Per-screen detail
+│   │   └── patterns/*.md     # Reusable patterns (form, list, dialog, nav)
+│   └── CROSS-APP.md          # Cross-app contracts (rare)
+├── docs/
+│   ├── features/             # Feature specs (from feature-spec)
+│   ├── adr/                  # Architecture decisions
+│   ├── TRYOUT.md             # Validation suite
+│   └── AGENT-SETUP.md        # Provider setup guide
+├── third-party.manifest      # Pinned third-party skills
+├── third-party.lock          # Pinned commits (auto-generated)
+├── opencode.json             # OpenCode provider config
+└── .env.example              # API key template
+```
+
+## Validation
+
+Run the full suite: `docs/TRYOUT.md`
+
+Key tests:
+- **B** Interview & plan presentation (no autopilot)
+- **F** Codebase map init (lazy, scoped, verified)
+- **H** Design system filled from audit (no invented tokens)
+- **I** UI map init (mirrors code map structure)
+- **L/M** Scope discipline & map reuse (token efficiency)
+
+## License
+
+MIT — Personal template, use freely.
