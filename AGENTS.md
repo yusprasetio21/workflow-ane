@@ -3,7 +3,7 @@
 ## App (default: one)
 | App | Folder | Stack |
 |---|---|---|
-| app | apps/app | (fill in: e.g., Vue + SCSS, Rust, Go, ...) |
+| app | apps/app | Flutter (Dart) |
 
 One map for the codebase: `map/INDEX.md`. If you work with multiple source folders, list them here and in `map/INDEX.md` — but **default is one app**. Only add more when the user explicitly asks.
 
